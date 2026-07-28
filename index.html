@@ -211,13 +211,22 @@
             const text = e.target.options[e.target.selectedIndex].text;
             editor.setOption('mode', mode);
             statusMode.textContent = text;
+            
+            // ¡NUEVO!: Guardar la selección en la memoria del navegador
+            localStorage.setItem('geany_last_lang', mode);
+            
             toggleMenu(); // Cierra el menú tras seleccionar
         });
 
-        // Set inicial para que coincida con el contenido por defecto
-        editor.setOption('mode', 'text/javascript');
-        languageSelect.value = 'text/javascript';
-        statusMode.textContent = 'JavaScript';
+        // ¡NUEVO!: Set inicial leyendo la memoria
+        // Si hay un lenguaje guardado lo usa, si no, usa JavaScript por defecto
+        const savedLang = localStorage.getItem('geany_last_lang') || 'text/javascript';
+        languageSelect.value = savedLang;
+        editor.setOption('mode', savedLang);
+        // Validamos que exista la opción (por si acaso)
+        if (languageSelect.selectedIndex >= 0) {
+            statusMode.textContent = languageSelect.options[languageSelect.selectedIndex].text;
+        }
 
         // --- 5. Funcionalidad: Operaciones de Archivo ---
         const newFileBtn = document.getElementById('new-file-btn');
@@ -264,6 +273,9 @@
                     languageSelect.value = modeMap[ext];
                     editor.setOption('mode', modeMap[ext]);
                     statusMode.textContent = languageSelect.options[languageSelect.selectedIndex].text;
+                    
+                    // ¡NUEVO!: Actualizar la memoria si se autodetecta otro lenguaje al abrir
+                    localStorage.setItem('geany_last_lang', modeMap[ext]);
                 }
             };
             reader.readAsText(file);
