@@ -1,10 +1,312 @@
-# Bienvenido a Geany Web (CrunchBang Edition)
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta tag crucial para móviles: deshabilita el zoom automático y ajusta al ancho del dispositivo -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>#! Geany Web</title>
+    
+    <!-- Tailwind CSS para el diseño rápido y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Configuración de colores de Tailwind para simular CrunchBang -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cb-dark': '#1e1e1e',
+                        'cb-darker': '#151515',
+                        'cb-panel': '#2d2d2d',
+                        'cb-text': '#d4d4d4',
+                        'cb-accent': '#787878'
+                    }
+                }
+            }
+        }
+    </script>
 
-// Usa el menú superior izquierdo para:
-// - Abrir archivos desde tu dispositivo
-// - Cambiar el resaltado de sintaxis
-// - Guardar tu código
+    <!-- CodeMirror (Motor del editor de código) y sus temas/modos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <!-- Lenguajes soportados -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
 
-function holaMundo() {
-    alert('¡Hola desde Geany!');
-}
+    <style>
+        /* Estilos personalizados y ajustes para móviles */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #151515;
+            color: #d4d4d4;
+            overflow: hidden; /* Evita el scroll del body, todo pasa en el editor */
+        }
+
+        /* Ajustes para que CodeMirror ocupe todo el espacio disponible */
+        .CodeMirror {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 100%;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Ocultar el input file real */
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-full">
+
+    <!-- BARRA SUPERIOR (HEADER) -->
+    <header class="bg-cb-darker text-cb-text h-12 flex items-center justify-between px-3 border-b border-gray-700 select-none z-40">
+        <div class="flex items-center gap-3">
+            <!-- Botón Menú Hamburguesa -->
+            <button id="menu-btn" class="p-2 bg-cb-panel rounded hover:bg-gray-600 focus:outline-none transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <div class="font-bold tracking-wider text-sm">
+                <span class="text-gray-500">#!</span> GEANY
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <!-- Botón Guardar Rápido -->
+            <button id="quick-save-btn" class="p-2 text-cb-text hover:text-white focus:outline-none" title="Guardar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ÁREA DEL EDITOR -->
+    <main class="relative flex-grow w-full">
+        <textarea id="editor"></textarea>
+    </main>
+
+    <!-- BARRA DE ESTADO (FOOTER) -->
+    <footer class="bg-cb-darker h-6 flex items-center justify-between px-3 text-xs text-cb-accent border-t border-gray-700 select-none z-40">
+        <div id="status-mode">Texto Plano</div>
+        <div id="status-cursor">Lín: 1, Col: 1</div>
+    </footer>
+
+    <!-- MENÚ LATERAL (DRAWER) -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden transition-opacity"></div>
+    
+    <div id="drawer" class="fixed top-0 left-0 h-full w-64 bg-cb-dark shadow-lg z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-cb-darker">
+            <span class="font-bold text-lg"><span class="text-gray-500">#!</span> Menú</span>
+            <button id="close-menu-btn" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="flex-grow p-4 space-y-4 overflow-y-auto">
+            <!-- Acciones de Archivo -->
+            <div class="space-y-2">
+                <div class="text-xs text-gray-500 uppercase font-semibold mb-2">Archivo</div>
+                <button id="new-file-btn" class="w-full text-left px-3 py-2 bg-cb-panel rounded hover:bg-gray-600 flex items-center gap-3 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Nuevo Archivo
+                </button>
+                <button id="open-file-btn" class="w-full text-left px-3 py-2 bg-cb-panel rounded hover:bg-gray-600 flex items-center gap-3 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    Abrir Archivo
+                </button>
+                <!-- Input oculto para abrir archivos -->
+                <input type="file" id="file-input" accept=".txt,.html,.css,.js,.py,.cpp,.c,.h">
+                
+                <button id="save-file-btn" class="w-full text-left px-3 py-2 bg-cb-panel rounded hover:bg-gray-600 flex items-center gap-3 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Guardar Como...
+                </button>
+            </div>
+
+            <hr class="border-gray-700">
+
+            <!-- Selector de Lenguaje -->
+            <div>
+                <div class="text-xs text-gray-500 uppercase font-semibold mb-2">Lenguaje (Sintaxis)</div>
+                <select id="language-select" class="w-full bg-cb-panel text-white p-2 rounded outline-none border border-gray-600 focus:border-gray-400">
+                    <option value="text/plain">Texto Plano</option>
+                    <option value="text/html">HTML</option>
+                    <option value="text/css">CSS</option>
+                    <option value="text/javascript">JavaScript</option>
+                    <option value="text/x-python">Python</option>
+                    <option value="text/x-c++src">C / C++</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Inicialización de CodeMirror ---
+        const editorElement = document.getElementById('editor');
+        const editor = CodeMirror.fromTextArea(editorElement, {
+            mode: "text/plain",
+            theme: "monokai",
+            lineNumbers: true, // Números de línea
+            lineWrapping: true, // Crucial para móviles: evita el scroll horizontal
+            indentUnit: 4,
+            matchBrackets: true,
+            viewportMargin: Infinity
+        });
+
+        // Contenido inicial de ejemplo
+        editor.setValue("# Bienvenido a Geany Web (CrunchBang Edition)\n\n// Usa el menú superior izquierdo para:\n// - Abrir archivos desde tu dispositivo\n// - Cambiar el resaltado de sintaxis\n// - Guardar tu código\n\nfunction holaMundo() {\n    alert('¡Hola desde Geany!');\n}");
+
+        // --- 2. Lógica del Menú Lateral (Drawer) ---
+        const menuBtn = document.getElementById('menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const drawer = document.getElementById('drawer');
+        const overlay = document.getElementById('drawer-overlay');
+
+        function toggleMenu() {
+            const isClosed = drawer.classList.contains('-translate-x-full');
+            if (isClosed) {
+                drawer.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                // Pequeño delay para la animación de opacidad
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            } else {
+                drawer.classList.add('-translate-x-full');
+                overlay.classList.remove('opacity-100');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        menuBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+        overlay.addEventListener('click', toggleMenu);
+
+        // --- 3. Actualización de la Barra de Estado ---
+        const statusCursor = document.getElementById('status-cursor');
+        
+        editor.on('cursorActivity', () => {
+            const pos = editor.getCursor();
+            // CodeMirror cuenta desde 0, así que sumamos 1 para la visualización del usuario
+            statusCursor.textContent = `Lín: ${pos.line + 1}, Col: ${pos.ch + 1}`;
+        });
+
+        // --- 4. Funcionalidad: Cambio de Lenguaje ---
+        const languageSelect = document.getElementById('language-select');
+        const statusMode = document.getElementById('status-mode');
+
+        languageSelect.addEventListener('change', (e) => {
+            const mode = e.target.value;
+            const text = e.target.options[e.target.selectedIndex].text;
+            editor.setOption('mode', mode);
+            statusMode.textContent = text;
+            toggleMenu(); // Cierra el menú tras seleccionar
+        });
+
+        // Set inicial para que coincida con el contenido por defecto
+        editor.setOption('mode', 'text/javascript');
+        languageSelect.value = 'text/javascript';
+        statusMode.textContent = 'JavaScript';
+
+        // --- 5. Funcionalidad: Operaciones de Archivo ---
+        const newFileBtn = document.getElementById('new-file-btn');
+        const openFileBtn = document.getElementById('open-file-btn');
+        const fileInput = document.getElementById('file-input');
+        const saveFileBtn = document.getElementById('save-file-btn');
+        const quickSaveBtn = document.getElementById('quick-save-btn');
+
+        // Nuevo Archivo
+        newFileBtn.addEventListener('click', () => {
+            if(confirm("¿Estás seguro de crear un nuevo archivo? Los cambios no guardados se perderán.")) {
+                editor.setValue("");
+                toggleMenu();
+            }
+        });
+
+        // Abrir Archivo
+        openFileBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                editor.setValue(event.target.result);
+                toggleMenu();
+                
+                // Intentar adivinar el lenguaje por la extensión
+                const ext = file.name.split('.').pop().toLowerCase();
+                let modeMap = {
+                    'html': 'text/html',
+                    'css': 'text/css',
+                    'js': 'text/javascript',
+                    'py': 'text/x-python',
+                    'cpp': 'text/x-c++src',
+                    'c': 'text/x-c++src',
+                    'txt': 'text/plain'
+                };
+                
+                if (modeMap[ext]) {
+                    languageSelect.value = modeMap[ext];
+                    editor.setOption('mode', modeMap[ext]);
+                    statusMode.textContent = languageSelect.options[languageSelect.selectedIndex].text;
+                }
+            };
+            reader.readAsText(file);
+            // Resetear input
+            fileInput.value = '';
+        });
+
+        // Función para guardar (Descargar al dispositivo)
+        function saveFile() {
+            const content = editor.getValue();
+            const blob = new Blob([content], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            
+            // Sugerir extensión basada en el lenguaje seleccionado
+            const mode = languageSelect.value;
+            let ext = ".txt";
+            if(mode === 'text/html') ext = ".html";
+            if(mode === 'text/css') ext = ".css";
+            if(mode === 'text/javascript') ext = ".js";
+            if(mode === 'text/x-python') ext = ".py";
+            if(mode === 'text/x-c++src') ext = ".cpp";
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "archivo_geany" + ext;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        saveFileBtn.addEventListener('click', () => {
+            saveFile();
+            toggleMenu();
+        });
+
+        quickSaveBtn.addEventListener('click', () => {
+            saveFile();
+        });
+
+        // Asegurarse de que el editor renderice correctamente al inicio
+        setTimeout(() => editor.refresh(), 100);
+
+    </script>
+</body>
+</html>
