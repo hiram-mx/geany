@@ -79,6 +79,11 @@
             <div class="font-bold tracking-wider text-sm">
                 <span class="text-gray-500">#!</span> GEANY
             </div>
+            
+            <!-- ¡NUEVO!: Botón Seleccionar Todo -->
+            <button id="select-all-btn" class="ml-1 px-2 py-1 text-[10px] tracking-widest font-bold bg-cb-panel rounded hover:bg-gray-600 text-cb-accent hover:text-white transition-colors" title="Seleccionar Todo">
+                SEL. TODO
+            </button>
         </div>
         
         <div class="flex items-center gap-2">
@@ -314,6 +319,15 @@
 
         quickSaveBtn.addEventListener('click', () => {
             saveFile();
+        });
+
+        // --- 6. Funcionalidad: Seleccionar Todo ---
+        const selectAllBtn = document.getElementById('select-all-btn');
+        selectAllBtn.addEventListener('click', () => {
+            // Usa el comando nativo de CodeMirror para seleccionar todo
+            editor.execCommand('selectAll');
+            // Mantiene el enfoque en el editor después de seleccionar
+            editor.focus(); 
         });
 
         // Asegurarse de que el editor renderice correctamente al inicio
