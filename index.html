@@ -87,6 +87,10 @@
         </div>
         
         <div class="flex items-center gap-2">
+            <!-- ¡NUEVO!: Botón Guardar como HTML predeterminado -->
+            <button id="save-html-btn" class="px-2 py-1 text-[10px] tracking-widest font-bold bg-cb-panel rounded hover:bg-gray-600 text-cb-accent hover:text-white transition-colors" title="Guardar forzosamente como HTML">
+                HTML
+            </button>
             <!-- Botón Guardar Rápido -->
             <button id="quick-save-btn" class="p-2 text-cb-text hover:text-white focus:outline-none" title="Guardar">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,19 +293,25 @@
         });
 
         // Función para guardar (Descargar al dispositivo)
-        function saveFile() {
+        function saveFile(forcedExt = null) {
             const content = editor.getValue();
             const blob = new Blob([content], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             
-            // Sugerir extensión basada en el lenguaje seleccionado
-            const mode = languageSelect.value;
             let ext = ".txt";
-            if(mode === 'text/html') ext = ".html";
-            if(mode === 'text/css') ext = ".css";
-            if(mode === 'text/javascript') ext = ".js";
-            if(mode === 'text/x-python') ext = ".py";
-            if(mode === 'text/x-c++src') ext = ".cpp";
+            
+            // Si presionamos el botón de HTML, forzamos la extensión. Si no, adivinamos.
+            if (forcedExt) {
+                ext = forcedExt;
+            } else {
+                // Sugerir extensión basada en el lenguaje seleccionado
+                const mode = languageSelect.value;
+                if(mode === 'text/html') ext = ".html";
+                if(mode === 'text/css') ext = ".css";
+                if(mode === 'text/javascript') ext = ".js";
+                if(mode === 'text/x-python') ext = ".py";
+                if(mode === 'text/x-c++src') ext = ".cpp";
+            }
 
             const a = document.createElement('a');
             a.href = url;
@@ -319,6 +329,12 @@
 
         quickSaveBtn.addEventListener('click', () => {
             saveFile();
+        });
+
+        // ¡NUEVO!: Escuchador para el botón de Guardar HTML
+        const saveHtmlBtn = document.getElementById('save-html-btn');
+        saveHtmlBtn.addEventListener('click', () => {
+            saveFile('.html');
         });
 
         // --- 6. Funcionalidad: Seleccionar Todo ---
